@@ -7,4 +7,3 @@ If an installed foreign package is not found in the AUR, it will also list this 
 
 ### Required system packages
 - pacman
-- curl

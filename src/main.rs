@@ -22,11 +22,9 @@ struct Info {
     Version: String
 }
 
-fn main() {
-    let pacman_output = Command::new("pacman").arg("-Qme").output()
-        .expect("Failed to execute pacman command");
-    let pacman_results = String::from_utf8(pacman_output.stdout)
-        .expect("Failed to parse pacman output");
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let pacman_output = Command::new("pacman").arg("-Qme").output()?;
+    let pacman_results = String::from_utf8(pacman_output.stdout)?;
 
     let mut rpc_url = String::from("https://aur.archlinux.org/rpc/v5/info?");
     let mut packages = Vec::new();
@@ -43,15 +41,12 @@ fn main() {
         }
     }
 
-    let curl_output = Command::new("curl").arg("--compressed").arg("-s").arg(rpc_url).output()
-        .expect("Failed to execute curl command");
-    let curl_results = String::from_utf8(curl_output.stdout)
-        .expect("Failed to parse curl output");
-    let multi_info: MultiInfo = serde_json::from_str(&curl_results).unwrap();
+    let multi_info: MultiInfo = reqwest::blocking::get(rpc_url)?.json()?;
     let mut query_results = HashMap::with_capacity(multi_info.resultcount);
     for info in multi_info.results {
         query_results.insert(info.Name, info.Version);
     }
+
     for package in packages {
         if let Some(aur_version) = query_results.get(&package.name) {
             match version_compare::compare(&package.version, aur_version) {
@@ -64,4 +59,6 @@ fn main() {
             println!("{} {} -> Not Found", package.name, package.version);
         }
     }
+
+    Ok(())
 }
