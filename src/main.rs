@@ -42,17 +42,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map(|info| (info.Name, info.Version))
         .collect();
 
+    let mut no_reports = true;
     for package in packages {
         if let Some(aur_version) = query_results.get(&package.name) {
             match version_compare::compare(&package.version, aur_version) {
                 Ok(Cmp::Lt) => {
                     println!("{} {} -> {}", package.name, package.version, aur_version);
+                    no_reports = false;
                 }
                 _ => {}
             }
         } else {
             println!("{} {} -> Not Found", package.name, package.version);
+            no_reports = false;
         }
+    }
+    if no_reports {
+        println!("All packages up to date.");
     }
 
     Ok(())
